@@ -71,9 +71,83 @@ wget https://downloads.openwrt.org/releases/24.10.0/targets/ramips/mt7621/openwr
 
 ```
 
-### 1.6 下载固件
+### 1.6 breed下刷入下载固件
 在 breed 控制台刷入   格式是   kernel1
 
 ```
 openwrt-24.10.0-ramips-mt7621-xiaomi_redmi-router-ac2100-squashfs-kernel1.bin
+```
+
+
+### 1.8 openwrt 更新固件
+
+```
+openwrt-24.10.0-ramips-mt7621-xiaomi_redmi-router-ac2100-squashfs-sysupgrade.bin
+```
+
+### 1.9 更新软件
+
+```
+opkg update
+opkg install openssl-util curl tmux
+
+```
+
+
+### 1.10 安装 openclient
+
+```
+opkg update
+opkg install openssl-util luci-proto-openconnect opeconnect 
+```
+
+### 1.11 配置  openclient
+
+参考 服务端以 188.188.188.188 为例, 按实际替换
+```
+https://openwrt.org/docs/guide-user/services/vpn/openconnect/client
+```
+```
+VPN_IF="vpn"
+VPN_SERV="188.188.188.188"
+VPN_PORT="4433"
+VPN_USER="USERNAME"
+VPN_PASS="PASSWORD"
+VPN_CERT="server-cert.pem"
+
+ 
+
+openssl s_client -showcerts -connect ${VPN_SERV}:${VPN_PORT} -servername ${VPN_SERV} < /dev/null 2>/dev/null | sed -n '/-----BEGIN CERTIFICATE-----/,/-----END CER
+TIFICATE-----/p' > server-cert.pem
+  
+uci rename firewall.@zone[0]="lan"
+uci rename firewall.@zone[1]="wan"
+uci del_list firewall.wan.network="${VPN_IF}"
+uci add_list firewall.wan.network="${VPN_IF}"
+uci commit firewall
+service firewall restart
+  
+uci -q delete network.${VPN_IF}
+uci set network.${VPN_IF}="interface"
+uci set network.${VPN_IF}.proto="openconnect"
+uci set network.${VPN_IF}.server="${VPN_SERV}"
+uci set network.${VPN_IF}.port="${VPN_PORT}"
+uci set network.${VPN_IF}.username="${VPN_USER}"
+uci set network.${VPN_IF}.password="${VPN_PASS}"
+uci set network.${VPN_IF}.serverhash="${VPN_HASH}"
+uci commit network
+  
+```
+
+设置路由
+
+```
+ip route add default via 192.168.110.1
+ip route add 47.245.97.193 via 192.168.110.1
+```
+
+```
+
+service network restart
+
 ```
